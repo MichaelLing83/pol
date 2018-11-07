@@ -27,7 +27,8 @@ def config_logging(verbosity: int):
                         format=DEFAULT_LOGGING_FORMAT)
 
 
-def build_var_dict(_line_no: int,
+def build_var_dict(line: str,
+                   _line_no: int,
                    _buffer: dict,
                    _fname: str,
                    _fpath: str) -> dict:
@@ -36,6 +37,7 @@ def build_var_dict(_line_no: int,
         '_buffer': _buffer,
         '_fname': _fname,
         '_fpath': _fpath,
+        'line': line,
     }
 
 
@@ -100,11 +102,11 @@ if __name__ == '__main__':
                 with open(_file_path, 'r') as _f:
                     for line in _f:
                         _var_dict['line'] = line
-                        exec(args.line, build_var_dict(_line_no, _buffer, _fname, _fpath))
+                        exec(args.line, build_var_dict(line, _line_no, _buffer, _fname, _fpath))
                         _line_no += 1
     else:
         # read lines from stdin
         for line in sys.stdin:
             _var_dict['line'] = line
-            exec(args.line, build_var_dict(_line_no, _buffer, _fname, _fpath))
+            exec(args.line, build_var_dict(line, _line_no, _buffer, _fname, _fpath))
             _line_no += 1
