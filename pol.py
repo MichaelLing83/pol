@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 import logging
 
-VERSION: str = '0.0.1'
+VERSION: str = '0.0.2'
 NAME: str = 'Python3 One-Liner'
 
 DEFAULT_LOGGING_FORMAT: str = '%(relativeCreated)6d [%(processName)-10.10s]' \
@@ -25,6 +25,18 @@ def config_logging(verbosity: int):
 
     logging.basicConfig(level=_logging_lvls[_log_lvl_idx],
                         format=DEFAULT_LOGGING_FORMAT)
+
+
+def build_var_dict(_line_no: int,
+                   _buffer: dict,
+                   _fname: str,
+                   _fpath: str) -> dict:
+    return {
+        '_line_no': _line_no,
+        '_buffer': _buffer,
+        '_fname': _fname,
+        '_fpath': _fpath,
+    }
 
 
 if __name__ == '__main__':
@@ -88,11 +100,11 @@ if __name__ == '__main__':
                 with open(_file_path, 'r') as _f:
                     for line in _f:
                         _var_dict['line'] = line
-                        exec(args.line, _var_dict)
+                        exec(args.line, build_var_dict(_line_no, _buffer, _fname, _fpath))
                         _line_no += 1
     else:
         # read lines from stdin
         for line in sys.stdin:
             _var_dict['line'] = line
-            exec(args.line, _var_dict)
+            exec(args.line, build_var_dict(_line_no, _buffer, _fname, _fpath))
             _line_no += 1
