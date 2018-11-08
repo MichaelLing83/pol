@@ -3,7 +3,7 @@ import logging
 from enum import Enum
 import re
 
-VERSION: str = '0.0.4'
+VERSION: str = '0.0.5'
 NAME: str = 'Python3 One-Liner'
 
 DEFAULT_LOGGING_FORMAT: str = '%(relativeCreated)6d [%(processName)-10.10s]' \
@@ -36,6 +36,19 @@ class ContextVarNameE(Enum):
     FILE_NAME = '_fn'
     FILE_PATH = '_fp'
 
+    MODULE_RE = 're'
+
+    FUNCTION_PRINT = 'p'
+
+    def explain(self) -> str:
+        return {self.LINE.value: 'current text line to process',
+                self.LINE_NO.value: 'current line number in current file',
+                self.BUFFER.value: 'a dictionary serves as user-defined buffer',
+                self.FILE_PATH.value: 'current file path',
+                self.FILE_NAME.value: 'current file name',
+                self.MODULE_RE.value: 'regular expression package re',
+                self.FUNCTION_PRINT.value: 'alias to build-in function print'}[self.value]
+
 
 class Context(dict):
     def __init__(self):
@@ -44,7 +57,20 @@ class Context(dict):
             self[_var_name.value] = None
         self[ContextVarNameE.BUFFER.value] = {}
         self[ContextVarNameE.LINE_NO.value] = 0
-        self['re'] = re
+        self[ContextVarNameE.MODULE_RE.value] = re
+        self[ContextVarNameE.FUNCTION_PRINT.value] = print
+
+
+def _exec(statement, context):
+    try:
+        exec(statement, context)
+    except NameError as _error:
+        print(f"Unknown name: {_error}")
+        sys.exit(1)
+    except SyntaxError as _error:
+        print(f"{_error.msg}: {_error.text.strip()}")
+        print(" " * (len(_error.msg) + _error.offset + 1) + "^")
+        sys.exit(1)
 
 
 if __name__ == '__main__':
@@ -55,9 +81,13 @@ if __name__ == '__main__':
     import pstats
     from datetime import datetime
 
-    _parser = argparse.ArgumentParser()
-    _parser.add_argument("-l", "--line", required=False,
-                         help="Python 3 expression to run per input line.",
+    _parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="The following variables are available during execution of any above Python statements:\n\t" + "\n\t".join(
+            [f"{_k.value}: {_k.explain()}" for _k in ContextVarNameE]
+        ))
+    _parser.add_argument("-l", "--line", required=True,
+                         help="Python 3 statements to exec per input line.",
                          action='append')
     _parser.add_argument("--version",
                          help="Print version and exit.",
@@ -72,11 +102,11 @@ if __name__ == '__main__':
                          action='count',
                          default=0)
     _parser.add_argument('-pre', '--pre_run',
-                         help="Python3 expression to run once before any file or line is handled.",
+                         help="Python3 statements to exec once before any file or line is handled.",
                          type=str,
                          default='pass')
     _parser.add_argument('-post', '--post_run',
-                         help="Python3 expression to run once after all files and lines are handled.",
+                         help="Python3 statements to exec once after all files and lines are handled.",
                          type=str,
                          default='pass')
     _parser.add_argument("--profiling",
@@ -93,18 +123,25 @@ if __name__ == '__main__':
 
     _logger: logging.Logger = logging.getLogger()
 
-    if args.line:
-        for _idx in range(len(args.line)):
-            args.line[_idx] = compile(args.line[_idx], filename='<string>', mode='exec')
-    args.pre_run = compile(args.pre_run, filename='<string>', mode='exec')
-    args.post_run = compile(args.post_run, filename='<string>', mode='exec')
+    try:
+        if args.line:
+            for _idx in range(len(args.line)):
+                args.line[_idx] = compile(args.line[_idx], filename='<string>', mode='exec')
+        args.pre_run = compile(args.pre_run, filename='<string>', mode='exec')
+        args.post_run = compile(args.post_run, filename='<string>', mode='exec')
+    except SyntaxError as _error:
+        print(_error)
+        sys.exit(1)
+    except ValueError as _error:
+        print(_error)
+        sys.exit(1)
 
     if args.version:
         print(f"{pathlib.Path(__file__).name} ({NAME}) {VERSION}")
         sys.exit(0)
 
     _context: Context = Context()
-    exec(args.pre_run, _context)
+    _exec(args.pre_run, _context)
 
     if args.read_file_paths:
         _logger.info(f"Read file path from stdin, one per line.")
@@ -124,7 +161,7 @@ if __name__ == '__main__':
                         _context[ContextVarNameE.LINE.value] = line
                         _logger.debug(f"_context={_context}")
                         for _line_exp in args.line:
-                            exec(_line_exp, _context)
+                            _exec(_line_exp, _context)
                         _context[ContextVarNameE.LINE_NO.value] += 1
     else:
         # read lines from stdin
@@ -133,10 +170,10 @@ if __name__ == '__main__':
         for line in sys.stdin:
             _context[ContextVarNameE.LINE.value] = line
             for _line_exp in args.line:
-                exec(_line_exp, _context)
+                _exec(_line_exp, _context)
             _context[ContextVarNameE.LINE_NO.value] += 1
 
-    exec(args.post_run, _context)
+    _exec(args.post_run, _context)
 
     if args.profiling:
         _profile.disable()
