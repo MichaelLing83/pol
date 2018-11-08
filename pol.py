@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 import logging
+from enum import Enum
 
 VERSION: str = '0.0.2'
 NAME: str = 'Python3 One-Liner'
@@ -41,6 +42,22 @@ def build_var_dict(line: str,
     }
 
 
+class ContextVarNameE(Enum):
+    LINE = '_l'
+    LINE_NO = '_lno'
+    BUFFER = '_buf'
+    FILE_NAME = '_fn'
+    FILE_PATH = '_fp'
+
+
+class Context(dict):
+    def __init__(self):
+        super().__init__()
+        for _var_name in ContextVarNameE:
+            self[_var_name.value] = None
+        self[ContextVarNameE.BUFFER] = {}
+
+
 if __name__ == '__main__':
     import argparse
     import sys
@@ -76,16 +93,6 @@ if __name__ == '__main__':
         print(f"{pathlib.Path(__file__).name} ({NAME}) {VERSION}")
         sys.exit(0)
 
-    _line_no: int = 0
-    _buffer: dict = dict()
-    _fname: str = str(sys.stdin)
-    _fpath: str = _fname
-    _var_dict: dict = {
-        '_line_no': _line_no,
-        '_buffer': _buffer,
-        '_fname': _fname,
-        '_fpath': _fpath,
-    }
     if args.read_file_paths:
         _logger.info(f"Read file path from stdin, one per line.")
         for _file_path in sys.stdin:
@@ -96,17 +103,23 @@ if __name__ == '__main__':
             elif not pathlib.Path(_file_path).is_file():
                 _logger.warning(f"{_file_path} is not a file!")
             else:
-                _fpath = _file_path
-                _fname = pathlib.Path(_file_path).name
-                _line_no = 0
+                # new context for each file processed
+                _context: Context = Context()
+                _context[ContextVarNameE.FILE_PATH.value] = _file_path
+                _context[ContextVarNameE.FILE_NAME.value] = pathlib.Path(_file_path).name
+                _context[ContextVarNameE.LINE_NO.value] = 0
                 with open(_file_path, 'r') as _f:
                     for line in _f:
-                        _var_dict['line'] = line
-                        exec(args.line, build_var_dict(line, _line_no, _buffer, _fname, _fpath))
-                        _line_no += 1
+                        _context[ContextVarNameE.LINE.value] = line
+                        _logger.debug(f"_context={_context}")
+                        exec(args.line, _context)
+                        _context[ContextVarNameE.LINE_NO.value] += 1
     else:
         # read lines from stdin
+        _context: Context = Context()
+        _context[ContextVarNameE.FILE_NAME.value] = 'stdin'
+        _context[ContextVarNameE.FILE_PATH.value] = ''
         for line in sys.stdin:
-            _var_dict['line'] = line
-            exec(args.line, build_var_dict(line, _line_no, _buffer, _fname, _fpath))
-            _line_no += 1
+            _context[ContextVarNameE.LINE.value] = line
+            exec(args.line, _context)
+            _context[ContextVarNameE.LINE_NO.value] += 1
