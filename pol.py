@@ -54,8 +54,7 @@ if __name__ == '__main__':
     _parser = argparse.ArgumentParser()
     _parser.add_argument("-l", "--line", required=False,
                          help="Python 3 expression to run per input line.",
-                         type=str,
-                         default='pass')
+                         action='append')
     _parser.add_argument("--version",
                          help="Print version and exit.",
                          action='count',
@@ -83,7 +82,8 @@ if __name__ == '__main__':
 
     _logger: logging.Logger = logging.getLogger()
 
-    args.line = compile(args.line, filename='<string>', mode='exec')
+    for _idx in range(len(args.line)):
+        args.line[_idx] = compile(args.line[_idx], filename='<string>', mode='exec')
     args.pre_run = compile(args.pre_run, filename='<string>', mode='exec')
     args.post_run = compile(args.post_run, filename='<string>', mode='exec')
 
@@ -111,7 +111,8 @@ if __name__ == '__main__':
                     for line in _f:
                         _context[ContextVarNameE.LINE.value] = line
                         _logger.debug(f"_context={_context}")
-                        exec(args.line, _context)
+                        for _line_exp in args.line:
+                            exec(_line_exp, _context)
                         _context[ContextVarNameE.LINE_NO.value] += 1
     else:
         # read lines from stdin
@@ -119,7 +120,8 @@ if __name__ == '__main__':
         _context[ContextVarNameE.FILE_PATH.value] = ''
         for line in sys.stdin:
             _context[ContextVarNameE.LINE.value] = line
-            exec(args.line, _context)
+            for _line_exp in args.line:
+                exec(_line_exp, _context)
             _context[ContextVarNameE.LINE_NO.value] += 1
 
     exec(args.post_run, _context)
