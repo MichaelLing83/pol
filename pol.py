@@ -42,7 +42,7 @@ class Context(dict):
         super().__init__()
         for _var_name in ContextVarNameE:
             self[_var_name.value] = None
-        self[ContextVarNameE.BUFFER] = {}
+        self[ContextVarNameE.BUFFER.value] = {}
         self['re'] = re
 
 
@@ -68,6 +68,14 @@ if __name__ == '__main__':
                          help="Read file path from stdin, one per line.",
                          action='count',
                          default=0)
+    _parser.add_argument('-pre', '--pre_run',
+                         help="Python3 expression to run once before any file or line is handled.",
+                         type=str,
+                         default='pass')
+    _parser.add_argument('-post', '--post_run',
+                         help="Python3 expression to run once after all files and lines are handled.",
+                         type=str,
+                         default='pass')
 
     args = _parser.parse_args()
 
@@ -76,10 +84,15 @@ if __name__ == '__main__':
     _logger: logging.Logger = logging.getLogger()
 
     args.line = compile(args.line, filename='<string>', mode='exec')
+    args.pre_run = compile(args.pre_run, filename='<string>', mode='exec')
+    args.post_run = compile(args.post_run, filename='<string>', mode='exec')
 
     if args.version:
         print(f"{pathlib.Path(__file__).name} ({NAME}) {VERSION}")
         sys.exit(0)
+
+    _context: Context = Context()
+    exec(args.pre_run, _context)
 
     if args.read_file_paths:
         _logger.info(f"Read file path from stdin, one per line.")
@@ -91,8 +104,6 @@ if __name__ == '__main__':
             elif not pathlib.Path(_file_path).is_file():
                 _logger.warning(f"{_file_path} is not a file!")
             else:
-                # new context for each file processed
-                _context: Context = Context()
                 _context[ContextVarNameE.FILE_PATH.value] = _file_path
                 _context[ContextVarNameE.FILE_NAME.value] = pathlib.Path(_file_path).name
                 _context[ContextVarNameE.LINE_NO.value] = 0
@@ -104,10 +115,11 @@ if __name__ == '__main__':
                         _context[ContextVarNameE.LINE_NO.value] += 1
     else:
         # read lines from stdin
-        _context: Context = Context()
         _context[ContextVarNameE.FILE_NAME.value] = 'stdin'
         _context[ContextVarNameE.FILE_PATH.value] = ''
         for line in sys.stdin:
             _context[ContextVarNameE.LINE.value] = line
             exec(args.line, _context)
             _context[ContextVarNameE.LINE_NO.value] += 1
+
+    exec(args.post_run, _context)
