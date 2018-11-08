@@ -50,6 +50,9 @@ if __name__ == '__main__':
     import argparse
     import sys
     import pathlib
+    import cProfile
+    import pstats
+    from datetime import datetime
 
     _parser = argparse.ArgumentParser()
     _parser.add_argument("-l", "--line", required=False,
@@ -75,8 +78,15 @@ if __name__ == '__main__':
                          help="Python3 expression to run once after all files and lines are handled.",
                          type=str,
                          default='pass')
+    _parser.add_argument("--profiling",
+                         help="Enable and use cProfile to report program performance profiles.",
+                         action='count')
 
     args = _parser.parse_args()
+
+    _profile = cProfile.Profile()
+    if args.profiling:
+        _profile.enable()
 
     config_logging(args.verbose)
 
@@ -125,3 +135,19 @@ if __name__ == '__main__':
             _context[ContextVarNameE.LINE_NO.value] += 1
 
     exec(args.post_run, _context)
+
+    if args.profiling:
+        _profile.disable()
+        now = datetime.now()
+        with open("%s_%s.cprofile" % (pathlib.Path(__file__).name,
+                                      "{year:02}{month:02}{day:02}_{hour:02}{minute:02}_{second:02}".format(
+            year=now.year % 100,
+            month=now.month,
+            day=now.day,
+            hour=now.hour,
+            minute=now.minute,
+            second=now.second
+
+        )), 'w') as f:
+            ps = pstats.Stats(_profile, stream=f).sort_stats('cumulative')
+            ps.print_stats()
