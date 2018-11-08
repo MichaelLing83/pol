@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 import logging
 from enum import Enum
+import re
 
 VERSION: str = '0.0.2'
 NAME: str = 'Python3 One-Liner'
@@ -28,20 +29,6 @@ def config_logging(verbosity: int):
                         format=DEFAULT_LOGGING_FORMAT)
 
 
-def build_var_dict(line: str,
-                   _line_no: int,
-                   _buffer: dict,
-                   _fname: str,
-                   _fpath: str) -> dict:
-    return {
-        '_line_no': _line_no,
-        '_buffer': _buffer,
-        '_fname': _fname,
-        '_fpath': _fpath,
-        'line': line,
-    }
-
-
 class ContextVarNameE(Enum):
     LINE = '_l'
     LINE_NO = '_lno'
@@ -56,6 +43,7 @@ class Context(dict):
         for _var_name in ContextVarNameE:
             self[_var_name.value] = None
         self[ContextVarNameE.BUFFER] = {}
+        self['re'] = re
 
 
 if __name__ == '__main__':
