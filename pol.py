@@ -3,7 +3,7 @@ import logging
 from enum import Enum
 import re
 
-VERSION: str = '0.0.3'
+VERSION: str = '0.0.4'
 NAME: str = 'Python3 One-Liner'
 
 DEFAULT_LOGGING_FORMAT: str = '%(relativeCreated)6d [%(processName)-10.10s]' \
@@ -93,8 +93,9 @@ if __name__ == '__main__':
 
     _logger: logging.Logger = logging.getLogger()
 
-    for _idx in range(len(args.line)):
-        args.line[_idx] = compile(args.line[_idx], filename='<string>', mode='exec')
+    if args.line:
+        for _idx in range(len(args.line)):
+            args.line[_idx] = compile(args.line[_idx], filename='<string>', mode='exec')
     args.pre_run = compile(args.pre_run, filename='<string>', mode='exec')
     args.post_run = compile(args.post_run, filename='<string>', mode='exec')
 
