@@ -3,7 +3,7 @@ import logging
 from enum import Enum
 import re
 
-VERSION: str = '0.0.2'
+VERSION: str = '0.0.3'
 NAME: str = 'Python3 One-Liner'
 
 DEFAULT_LOGGING_FORMAT: str = '%(relativeCreated)6d [%(processName)-10.10s]' \
@@ -43,6 +43,7 @@ class Context(dict):
         for _var_name in ContextVarNameE:
             self[_var_name.value] = None
         self[ContextVarNameE.BUFFER.value] = {}
+        self[ContextVarNameE.LINE_NO.value] = 0
         self['re'] = re
 
 
