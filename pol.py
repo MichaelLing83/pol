@@ -2,6 +2,9 @@
 import logging
 from enum import Enum
 import re
+import os
+import sys
+import subprocess
 
 VERSION: str = '0.0.5'
 NAME: str = 'Python3 One-Liner'
@@ -37,6 +40,9 @@ class ContextVarNameE(Enum):
     FILE_PATH = '_fp'
 
     MODULE_RE = 're'
+    MODULE_OS = 'os'
+    MODULE_SYS = 'sys'
+    MODULE_SUBPROCESS = 'subprocess'
 
     FUNCTION_PRINT = 'p'
 
@@ -47,7 +53,10 @@ class ContextVarNameE(Enum):
                 self.FILE_PATH.value: 'current file path',
                 self.FILE_NAME.value: 'current file name',
                 self.MODULE_RE.value: 'regular expression package re',
-                self.FUNCTION_PRINT.value: 'alias to build-in function print'}[self.value]
+                self.MODULE_OS.value: 'package os',
+                self.MODULE_SYS.value: 'package sys',
+                self.MODULE_SUBPROCESS.value: 'package subprocess',
+                self.FUNCTION_PRINT.value: 'alias to build-in function print', }[self.value]
 
 
 class Context(dict):
@@ -58,6 +67,9 @@ class Context(dict):
         self[ContextVarNameE.BUFFER.value] = {}
         self[ContextVarNameE.LINE_NO.value] = 0
         self[ContextVarNameE.MODULE_RE.value] = re
+        self[ContextVarNameE.MODULE_OS.value] = os
+        self[ContextVarNameE.MODULE_SYS] = sys
+        self[ContextVarNameE.MODULE_SUBPROCESS] = subprocess
         self[ContextVarNameE.FUNCTION_PRINT.value] = print
 
 
@@ -123,6 +135,10 @@ if __name__ == '__main__':
 
     _logger: logging.Logger = logging.getLogger()
 
+    if args.version:
+        print(f"{pathlib.Path(__file__).name} ({NAME}) {VERSION}")
+        sys.exit(0)
+
     try:
         if args.line:
             for _idx in range(len(args.line)):
@@ -135,10 +151,6 @@ if __name__ == '__main__':
     except ValueError as _error:
         print(_error)
         sys.exit(1)
-
-    if args.version:
-        print(f"{pathlib.Path(__file__).name} ({NAME}) {VERSION}")
-        sys.exit(0)
 
     _context: Context = Context()
     _exec(args.pre_run, _context)
